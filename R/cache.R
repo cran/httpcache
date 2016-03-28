@@ -5,8 +5,11 @@ initCache <- function () {
 }
 initCache()
 
-caching <- function () isTRUE(getOption("httpcache.on"))
-
+caching <- function () {
+    ## Default should be on, so if httpcache.on isn't set, return TRUE
+    opt <- getOption("httpcache.on")
+    return(is.null(opt) || isTRUE(opt))
+}
 ##' Manage the HTTP cache
 ##'
 ##' These functions turn the cache on and off and clear the contents of the
@@ -34,10 +37,8 @@ clearCache <- function () {
 ##' Context manager to temporarily turn cache off if it is on
 ##'
 ##' If you don't want to store the response of a GET request in the cache,
-##' wrap it in \code{uncached()}. Note that if the response is already found
-##' in the cache, as from a previous request that was not uncached, you will
-##' get the cached response. That is, this function prevents writing to cache,
-##' but it does not prevent reading from cache.
+##' wrap it in \code{uncached()}. It will neither read from nor write to cache.
+##' However, \code{uncached} will not invalidate cache records, if present.
 ##'
 ##' @param ... Things to evaluate with caching off
 ##' @return Whatever ... returns.
@@ -85,13 +86,17 @@ dropPattern <- function (x) {
 #     dropPattern(paste0("^", regexEscape(popQuery(x)), ".+"))
 # }
 
-## TODO: write this? or can we trust that URLs don't contain reserved chars?
 regexEscape <- function (x) {
-    ## Escape all reserved characters with \\
+    ## Escape all reserved characters that are valid URL chars with \\
+    for (i in unlist(strsplit(".+?*", ""))) {
+        x <- gsub(paste0("(\\", i, ")"), "[\\1]", x)
+    }
     return(x)
 }
 
 popQuery <- function (x) {
     ## Remove query parameters from a URL
-    return(sub(".*(\\?.*)$", "", x))
+    return(sub("\\?.*$", "", x))
 }
+
+.internalFunction <- function () TRUE

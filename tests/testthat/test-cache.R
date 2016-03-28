@@ -1,5 +1,17 @@
 context("Caching")
 
+test_that("Cache is on by default", {
+    expect_true(is.null(getOption("httpcache.on")))
+    expect_true(caching())
+})
+test_that("httpcache.on option affects caching", {
+    on.exit(options(httpcache.on=NULL))
+    options(httpcache.on=FALSE)
+    expect_false(caching())
+    options(httpcache.on=TRUE)
+    expect_true(caching())
+})
+
 public({
     clearCache()
 
@@ -14,11 +26,15 @@ public({
         expect_identical(a$response, 35L)
     })
 
-    test_that("When the cache is set, can read from it even with no connection", {
-        ## Now read from cache
-        without_internet({
+    without_internet({
+        test_that("When the cache is set, can read from it even with no connection", {
+            ## Now read from cache
             expect_identical(GET("https://beta.crunch.io/api/datasets")$response,
                 35L)
+        })
+        test_that("But uncached() prevents reading from the cache", {
+            expect_error(uncached(GET("https://beta.crunch.io/api/datasets")),
+                "GET https://beta.crunch.io/api/datasets")
         })
     })
 
