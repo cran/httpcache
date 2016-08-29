@@ -1,5 +1,10 @@
+## ------------------------------------------------------------------------
+library(httpcache)
+
+## ---- results='hide', echo=FALSE, message=FALSE-----------------------------------------------------------------------
+options(width=120)
 with_mock_HTTP <- function (expr) {
-    with_mock(
+    testthat::with_mock(
         `httr::GET`=fakeGET,
         `httr::PUT`=fakePUT,
         `httr::PATCH`=fakePATCH,
@@ -20,7 +25,6 @@ fakeGET <- function (url, ...) {
 }
 
 fakePUT <- function (url, body=NULL, ...) {
-    message("PUT ", url, " ", body)
     return(list(
         status_code=204,
         times=structure(nchar(url), .Names="total"),
@@ -29,7 +33,6 @@ fakePUT <- function (url, body=NULL, ...) {
 }
 
 fakePATCH <- function (url, body=NULL, ...) {
-    message("PATCH ", url, " ", body)
     return(list(
         status_code=204,
         times=structure(nchar(url), .Names="total"),
@@ -38,7 +41,6 @@ fakePATCH <- function (url, body=NULL, ...) {
 }
 
 fakePOST <- function (url, body=NULL, ...) {
-    message("POST ", url, " ", body)
     return(list(
         status_code=201,
         times=structure(nchar(url), .Names="total"),
@@ -47,7 +49,6 @@ fakePOST <- function (url, body=NULL, ...) {
 }
 
 fakeDELETE <- function (url, body=NULL, ...) {
-    message("DELETE ", url, " ", body)
     return(list(
         status_code=204,
         times=structure(nchar(url), .Names="total"),
@@ -66,12 +67,16 @@ without_internet <- function (expr) {
     )
 }
 
-currently_offline <- function (url="http://httpbin.org/") {
-    inherits(try(uncached(GET(url)), silent=TRUE), "try-error")
-}
+## ---------------------------------------------------------------------------------------------------------------------
+system.time(a <- GET("http://httpbin.org/get"))
+system.time(b <- GET("http://httpbin.org/get"))
 
-skip_if_disconnected <- function (url="http://httpbin.org/") {
-    if (currently_offline(url)) {
-        skip(paste("Cannot reach", url))
-    }
-}
+## ---------------------------------------------------------------------------------------------------------------------
+identical(a, b)
+
+## ---------------------------------------------------------------------------------------------------------------------
+clearCache()
+startLog()
+a <- GET("http://httpbin.org/get")
+b <- GET("http://httpbin.org/get")
+
