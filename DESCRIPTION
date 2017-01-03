@@ -9,8 +9,8 @@ Description: In order to improve performance for HTTP API clients, 'httpcache'
     APIs; the package also enables custom cache-management strategies.
     Finally, 'httpcache' includes a basic logging framework to facilitate the
     measurement of HTTP request time and cache performance.
-Version: 0.1.8
-Date: 2016-08-22
+Version: 1.0.0
+Date: 2017-01-03
 Authors@R: c(person("Neal", "Richardson", role = c("aut", "cre"),
     email = "neal.p.richardson@gmail.com"))
 Author: Neal Richardson [aut, cre]
@@ -19,11 +19,11 @@ URL: https://github.com/nealrichardson/httpcache
 BugReports: https://github.com/nealrichardson/httpcache/issues
 License: MIT + file LICENSE
 Depends: R (>= 3.0.0)
-Imports: httr (>= 1.0.0), digest
-Suggests: knitr, testthat
+Imports: digest, httr (>= 1.0.0), jsonlite (>= 0.9.15)
+Suggests: httptest, knitr
 RoxygenNote: 5.0.1
 VignetteBuilder: knitr
 NeedsCompilation: no
-Packaged: 2016-08-29 17:29:41 UTC; npr
+Packaged: 2017-01-03 20:43:34 UTC; npr
 Repository: CRAN
-Date/Publication: 2016-08-29 20:48:53
+Date/Publication: 2017-01-03 23:54:34

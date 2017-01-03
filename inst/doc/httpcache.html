@@ -219,7 +219,7 @@ replacements for those in the <a href="https://github.com/hadley/httr">httr</a> 
 </code></pre>
 
 <pre><code>##    user  system elapsed 
-##   0.013   0.004   0.319
+##   0.049   0.002   0.228
 </code></pre>
 
 <pre><code class="r">system.time(b &lt;- GET(&quot;http://httpbin.org/get&quot;))
@@ -252,14 +252,14 @@ startLog()
 a &lt;- GET(&quot;http://httpbin.org/get&quot;)
 </code></pre>
 
-<pre><code>## 2016-08-29T10:29:41.820 HTTP GET http://httpbin.org/get 200 0.086839 
-## 2016-08-29T10:29:41.821 CACHE SET http://httpbin.org/get
+<pre><code>## 2017-01-03T12:43:34.287 HTTP GET http://httpbin.org/get 200 295 0 0 0 0 0.087 0.087
+## 2017-01-03T12:43:34.288 CACHE SET http://httpbin.org/get
 </code></pre>
 
 <pre><code class="r">b &lt;- GET(&quot;http://httpbin.org/get&quot;)
 </code></pre>
 
-<pre><code>## 2016-08-29T10:29:41.823 CACHE HIT http://httpbin.org/get
+<pre><code>## 2017-01-03T12:43:34.290 CACHE HIT http://httpbin.org/get
 </code></pre>
 
 <p>Notice how the first request results in an &ldquo;HTTP GET&rdquo; and a &ldquo;CACHE SET&rdquo;, while the second one gets a &ldquo;CACHE HIT&rdquo; and does not touch &ldquo;HTTP&rdquo;. From this log output, we can conclude that the query cache is working.</p>
@@ -288,7 +288,13 @@ any resources that start with the given URL.</p>
 
 <h2>Example</h2>
 
-<p>For a more complete example of the caching, logging, and invalidation features, we&#39;ll use a mock HTTP interface that allows demonstration of the features of <code>httpcache</code> without requiring a network connection. Refer to the <a href="http://github.com/nealrichardson/httpcache/blob/master/tests/testthat/helper-mocks.R">setup code in the test suite</a> for specifics. We&#39;ll make a series of requests, both reads and writes, and we&#39;ll capture the action with the logging tools.</p>
+<p>For a more complete example of the caching, logging, and invalidation features, we&#39;ll use a mock HTTP interface from the <code>httptest</code> package, which allows demonstration of the features of <code>httpcache</code> without requiring a network connection.  We&#39;ll make a series of requests, both reads and writes, and we&#39;ll capture the action with the logging tools.</p>
+
+<pre><code class="r">library(httptest)
+</code></pre>
+
+<pre><code>## Loading required package: testthat
+</code></pre>
 
 <!-- do requests. look at log. show cache invalidation. then show reading without internet -->
 

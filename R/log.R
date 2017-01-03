@@ -6,8 +6,20 @@
 logMessage <- function (...) {
     logfile <- getOption("httpcache.log")
     if (!is.null(logfile)) {
-        cat(strftime(Sys.time(), "%Y-%m-%dT%H:%M:%OS3"), ..., "\n", file=logfile, append=TRUE)
+        msg <- paste(strftime(Sys.time(), "%Y-%m-%dT%H:%M:%OS3"), ...)
+        cat(msg, "\n", sep="", file=logfile, append=TRUE)
     }
+}
+
+responseStatusLog <- function (response) {
+    ## Log message content for a HTTP response
+    req <- response$request
+    return(paste("HTTP",
+        req$method,
+        req$url,
+        response$status_code,
+        response$headers[["content-length"]] %||% "NA",
+        paste(round(response$times, 3), collapse=" ")))
 }
 
 #' Stop, log, and no call
@@ -54,12 +66,21 @@ startLog <- function (filename="", append=FALSE) {
 #' @export
 #' @importFrom utils read.delim
 loadLogfile <- function (filename, scope=c("CACHE", "HTTP")) {
-    df <- read.delim(filename, sep=" ", header=FALSE,
-        stringsAsFactors=FALSE)[,1:6]
-    names(df) <- c("timestamp", "scope", "verb", "url", "status", "time")
+    df <- read.delim(filename, sep=" ", header=FALSE, stringsAsFactors=FALSE)
+
+    numeric.cols <- c("status", "content_length", "redirect", "namelookup",
+        "connect", "pretransfer", "starttransfer", "total")
+    all.cols <- c("timestamp", "scope", "verb", "url", numeric.cols)
+    ## Don't let long error message lines distort our data.frame
+    ## But don't let a log that is only cache hits (and thus no status and
+    ## timing entries) break for being too short
+    dfcols <- 1:min(ncol(df), length(all.cols))
+    df <- df[,dfcols]
+    names(df) <- all.cols[dfcols]
     df <- df[df$scope %in% scope,] ## Prune out-of-scope things
     df$timestamp <- strptime(df$timestamp, "%Y-%m-%dT%H:%M:%OS")
-    df[c("status", "time")] <- lapply(df[c("status", "time")], as.numeric)
+    numerics <- intersect(c("status", numeric.cols), names(df))
+    df[numerics] <- lapply(df[numerics], as.numeric)
     return(df)
 }
 
@@ -88,8 +109,11 @@ requestLogSummary <- function (logdf) {
         head(logdf$timestamp, 1), units="secs"))
     df <- logdf[logdf$scope == "HTTP",]
     counts <- table(df$verb)
-    req.time <- sum(df$time, na.rm=TRUE)
+    req.time <- sum(df$total, na.rm=TRUE)
     pct.http.time <- 100*req.time/total.time
     return(list(counts=counts, req.time=req.time, total.time=total.time,
         pct.http.time=pct.http.time))
 }
+
+## Borrowed from Hadley
+"%||%" <- function (a, b) if (!is.null(a)) a else b
