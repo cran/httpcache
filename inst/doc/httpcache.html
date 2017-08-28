@@ -219,7 +219,7 @@ replacements for those in the <a href="https://github.com/hadley/httr">httr</a> 
 </code></pre>
 
 <pre><code>##    user  system elapsed 
-##   0.049   0.002   0.228
+##   0.044   0.004   0.220
 </code></pre>
 
 <pre><code class="r">system.time(b &lt;- GET(&quot;http://httpbin.org/get&quot;))
@@ -252,14 +252,14 @@ startLog()
 a &lt;- GET(&quot;http://httpbin.org/get&quot;)
 </code></pre>
 
-<pre><code>## 2017-01-03T12:43:34.287 HTTP GET http://httpbin.org/get 200 295 0 0 0 0 0.087 0.087
-## 2017-01-03T12:43:34.288 CACHE SET http://httpbin.org/get
+<pre><code>## 2017-08-28T10:57:55.755 HTTP GET http://httpbin.org/get 200 326 0 0 0 0 0.087 0.087
+## 2017-08-28T10:57:55.756 CACHE SET http://httpbin.org/get
 </code></pre>
 
 <pre><code class="r">b &lt;- GET(&quot;http://httpbin.org/get&quot;)
 </code></pre>
 
-<pre><code>## 2017-01-03T12:43:34.290 CACHE HIT http://httpbin.org/get
+<pre><code>## 2017-08-28T10:57:55.757 CACHE HIT http://httpbin.org/get
 </code></pre>
 
 <p>Notice how the first request results in an &ldquo;HTTP GET&rdquo; and a &ldquo;CACHE SET&rdquo;, while the second one gets a &ldquo;CACHE HIT&rdquo; and does not touch &ldquo;HTTP&rdquo;. From this log output, we can conclude that the query cache is working.</p>
