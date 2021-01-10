@@ -3,7 +3,7 @@
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
 
-<title>Improving API client performance with <code>httpcache</code></title>
+<title>Query logging</title>
 
 <script type="text/javascript">
 window.onload = function() {
@@ -201,32 +201,27 @@ hr {
 </head>
 
 <body>
-<!--
-%\VignetteEngine{knitr::knitr}
-%\VignetteIndexEntry{Improving API client performance with httpcache}
--->
-
-<h1>Improving API client performance with <code>httpcache</code></h1>
-
 <p><code>httpcache</code> provides the
 HTTP verb functions <code>GET()</code>, <code>PUT()</code>, <code>PATCH()</code>, <code>POST()</code>, and <code>DELETE()</code>, which are drop-in
-replacements for those in the <a href="http://httr.r-lib.org">httr</a> package. So, to take advantage of these cache-aware functions, all you need to do is load <code>httpcache</code> instead of <code>httr</code>, or in package development, import from <code>httpcache</code>.</p>
+replacements for those in the <a href="https://httr.r-lib.org">httr</a> package. <code>GET()</code> responses are added to the local query cache; <code>PUT()</code>, <code>PATCH()</code>, <code>POST()</code>, and <code>DELETE()</code> requests trigger cache invalidation on the associated resources. For APIs where a <code>POST</code> requests is used to send a command that returns content and doesn&#39;t modify state (and hence is semantically more of a <code>GET</code>), you can use <code>cachedPOST()</code>, which writes to the cache and doesn&#39;t invalidate.</p>
+
+<p>To take advantage of these cache-aware functions, all you need to do is load <code>httpcache</code> instead of <code>httr</code>, or in package development, import from <code>httpcache</code>.</p>
 
 <pre><code class="r">library(httpcache)
 </code></pre>
 
-<pre><code class="r">system.time(a &lt;- GET(&quot;http://httpbin.org/get&quot;))
+<pre><code class="r">system.time(a &lt;- GET(&quot;https://httpbin.org/get&quot;))
 </code></pre>
 
 <pre><code>##    user  system elapsed 
-##   0.042   0.002   0.365
+##   0.100   0.020   0.571
 </code></pre>
 
-<pre><code class="r">system.time(b &lt;- GET(&quot;http://httpbin.org/get&quot;))
+<pre><code class="r">system.time(b &lt;- GET(&quot;https://httpbin.org/get&quot;))
 </code></pre>
 
 <pre><code>##    user  system elapsed 
-##       0       0       0
+##   0.000   0.000   0.001
 </code></pre>
 
 <p>Notice how the second request returns instantly. It&#39;s reading from cache&mdash;there&#39;s no communication with a remote server, so no network latency and no server processing time. Remember: the fastest API request is the one you don&#39;t have to make.</p>
@@ -252,21 +247,23 @@ startLog()
 a &lt;- GET(&quot;http://httpbin.org/get&quot;)
 </code></pre>
 
-<pre><code>## 2017-10-16T22:20:33.813 HTTP GET http://httpbin.org/get 200 326 0 0 0 0 0.085 0.085
-## 2017-10-16T22:20:33.813 CACHE SET http://httpbin.org/get
+<pre><code>## 2021-01-10T13:16:59.923 HTTP GET http://httpbin.org/get 200 366 0 0.001 0.123 0.123 0.234 0.234
+## 2021-01-10T13:16:59.924 CACHE SET http://httpbin.org/get
 </code></pre>
 
 <pre><code class="r">b &lt;- GET(&quot;http://httpbin.org/get&quot;)
 </code></pre>
 
-<pre><code>## 2017-10-16T22:20:33.814 CACHE HIT http://httpbin.org/get
+<pre><code>## 2021-01-10T13:16:59.925 CACHE HIT http://httpbin.org/get
 </code></pre>
 
 <p>Notice how the first request results in an &ldquo;HTTP GET&rdquo; and a &ldquo;CACHE SET&rdquo;, while the second one gets a &ldquo;CACHE HIT&rdquo; and does not touch &ldquo;HTTP&rdquo;. From this log output, we can conclude that the query cache is working.</p>
 
 <h3>Log analysis</h3>
 
-<p>You can also pass a file name to <code>startLog</code>. This makes it easier to read the log output back in as a <code>data.frame</code> and analyze it quantitatively. We&#39;ll do an example of that below.</p>
+<p>You can also pass a file name to <code>startLog</code>. This makes it easier to read the log output back in as a <code>data.frame</code> and analyze it quantitatively.</p>
+
+<!-- We'll do an example of that below. -->
 
 <h3>Custom logging</h3>
 
@@ -274,7 +271,7 @@ a &lt;- GET(&quot;http://httpbin.org/get&quot;)
 
 <h2>Cache invalidation</h2>
 
-<p>As the <a href="http://martinfowler.com/bliki/TwoHardThings.html">saying (or joke, depending on the version)</a>, cache invalidation is one of the two hard problems in computer science. The trouble with caching what the server serves is that the server is the source of truth, and if the state of data on the server changes, our local copy of the data is stale. In some applications and with some APIs, we have no idea when the server state changes, but in many cases, the source of change on the server is actions that we initiate ourselves. In these cases, a local query cache is more feasible, and cache invalidation more tractable.</p>
+<p>As the <a href="https://martinfowler.com/bliki/TwoHardThings.html">saying (or joke, depending on the version)</a>, cache invalidation is one of the two hard problems in computer science. The trouble with caching what the server serves is that the server is the source of truth, and if the state of data on the server changes, our local copy of the data is stale. In some applications and with some APIs, we have no idea when the server state changes, but in many cases, the source of change on the server is actions that we initiate ourselves. In these cases, a local query cache is more feasible, and cache invalidation more tractable.</p>
 
 <p><code>httpcache</code> provides some functions to direct cache invalidation. We&#39;ve seen one already, <code>clearCache()</code>, which wipes the entire cache. Other functions give more surgical control. <code>dropOnly()</code>
 invalidates cache only for the specified URL. <code>dropPattern()</code> uses
@@ -282,11 +279,17 @@ regular expression matching to invalidate cache. <code>dropCache()</code> is a
 convenience wrapper around <code>dropPattern</code> that invalidates cache for
 any resources that start with the given URL.</p>
 
-<p>Depending on the API with which you&#39;re communicating, you may not need to use those cache-invalidation functions directly, or you may need them only infrequently. <code>httpcache</code> was designed with <a href="https://en.wikipedia.org/wiki/Representational_state_transfer">RESTful</a> APIs in mind, particularly those that expose resources that contain collections of entities that can be created, replaced, updated, and deleted with POST, PUT, PATCH, and DELETE, respectively. Consequently, these four HTTP verb functions are built with default cache invalidation actions: <code>POST</code> invalidates cache only for the request URL (<code>dropOnly</code>), for the case where POST creates a new entity appearing as a subresource. For example, if <code>GET http://api.example/projects/</code> returns a catalog of project entities, and POST to <code>http://api.example/projects/</code> creates a resource at <code>http://api.example/projects/new_id/</code>, we need to bust cache for the project catalog on POST, but our cached responses for resources such as  <code>http://api.example/projects/old_id/</code> should still be valid. The other three functions, <code>PUT</code>, <code>PATCH</code>, and <code>DELETE</code>, by default drop cache for the request URL and everything &ldquo;below&rdquo; it (<code>dropCache</code>). Continuing with the example, if we modify <code>http://api.example/projects/new_id/</code>, we should invalidate cache for that resource and for other resources appearing as subresources of it, such as <code>http://api.example/projects/new_id/users/</code>.</p>
+<p>Depending on the API with which you&#39;re communicating, you may not need to use those cache-invalidation functions directly, or you may need them only infrequently. <code>httpcache</code> was designed with <a href="https://en.wikipedia.org/wiki/Representational_state_transfer">RESTful</a> APIs in mind, particularly those that expose resources that contain collections of entities that can be created, replaced, updated, and deleted (&ldquo;<a href="https://en.wikipedia.org/wiki/Create,_read,_update_and_delete">CRUD</a>&rdquo;) with POST, PUT, PATCH, and DELETE, respectively. Consequently, these four HTTP verb functions are built with default cache invalidation actions: <code>POST</code> invalidates cache only for the request URL (<code>dropOnly</code>), for the case where POST creates a new entity appearing as a subresource; while <code>PUT</code>, <code>PATCH</code>, and <code>DELETE</code> drop cache for the request URL and everything &ldquo;below&rdquo; it (<code>dropCache</code>).</p>
 
-<p>These verb functions (<code>POST</code>, <code>PUT</code>, <code>PATCH</code>, and <code>DELETE</code>) all take a <code>drop</code> argument, which defaults as described above. To override them, you can specify a different call other than <code>dropCache(url)</code> or <code>dropOnly(url)</code>, or you can pass <code>drop = NULL</code> and call the cache-invalidation functions directly. Depending on your API and your usage of it, however, <code>httpcache</code>&#39;s cache management may just work for you with no additional effort.</p>
+<p>For example, if <code>GET http://api.example/projects/</code> returns a catalog of project entities, and POST to <code>http://api.example/projects/</code> creates a resource at <code>http://api.example/projects/new_id/</code>, we need to bust cache for the project catalog on POST, but our cached responses for resources such as  <code>http://api.example/projects/old_id/</code> should still be valid. But, if we modify <code>http://api.example/projects/new_id/</code>, we should invalidate cache for that resource and for other resources appearing as subresources of it, such as <code>http://api.example/projects/new_id/users/</code>.</p>
 
-<!-- 
+<p>These verb functions in <code>httpcache</code> (<code>POST()</code>, <code>PUT()</code>, <code>PATCH()</code>, and <code>DELETE()</code>) all take a <code>drop</code> argument, which defaults as described above. To override them, you can specify a different call other than <code>dropCache(url)</code> or <code>dropOnly(url)</code>, or you can pass <code>drop = NULL</code> and call the cache-invalidation functions directly outside of the request functions. Depending on your API and your usage of it, however, <code>httpcache</code>&#39;s cache management may just work for you with no additional effort.</p>
+
+<h2>Caching across sessions</h2>
+
+<p>The query cache you build up in one R session doesn&#39;t have to end with it. Use <code>saveCache()</code> to write out the contents of your cache to a <code>.rds</code> file. Restore it later with <code>loadCache()</code>.</p>
+
+<!--
 ## Example
 
 For a more complete example of the caching, logging, and invalidation features, we'll use a mock HTTP interface from the `httptest` package, which allows demonstration of the features of `httpcache` without requiring a network connection.  We'll make a series of requests, both reads and writes, and we'll capture the action with the logging tools.
